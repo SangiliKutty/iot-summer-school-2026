@@ -35,3 +35,5 @@ The potentiometer changes the blink speed.
 2. Verify the correct COM Port is selected.
 3. Ensure the LED polarity is correct.
 4. Make sure the Arduino Uno board is selected.
+## Commit
+Project created for IIT Jammu Summer School 2026.
