@@ -13,7 +13,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Count .ino files
-        run: |
-          echo "Counting .ino files..."
-          find . -name "*.ino" | wc -l
+      - name: Set up Python
+  uses: actions/setup-python@v5
+  with:
+    python-version: '3.11'
+
+- name: Run Python script
+  run: python count_ino.py
