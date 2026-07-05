@@ -1,85 +1,103 @@
-const int RED_PIN = 8;
-const int YELLOW_PIN = 9;
-const int GREEN_PIN = 10;
-const int BUTTON_PIN = 7;
+int redLED = 8;
+int yellowLED = 9;
+int greenLED = 10;
 
-const unsigned long RED_TIME = 5000;
-const unsigned long YELLOW_TIME = 2000;
-const unsigned long GREEN_TIME = 4000;
-const unsigned long PED_TIME = 8000;
+int pedButton = 7;
 
-enum State { RED, YELLOW, GREEN, PED_RED };
+unsigned long previousMillis = 0;
+unsigned long pedStartTime = 0;
+
+bool pedestrianMode = false;
+
+enum State {
+  RED,
+  YELLOW,
+  GREEN
+};
+
 State currentState = RED;
 
-unsigned long stateStartTime = 0;
-
 void setup() {
-  pinMode(RED_PIN, OUTPUT);
-  pinMode(YELLOW_PIN, OUTPUT);
-  pinMode(GREEN_PIN, OUTPUT);
+  pinMode(redLED, OUTPUT);
+  pinMode(yellowLED, OUTPUT);
+  pinMode(greenLED, OUTPUT);
 
-  pinMode(BUTTON_PIN, INPUT_PULLUP);
+  pinMode(pedButton, INPUT_PULLUP);
 
   Serial.begin(9600);
 
-  setState(RED);
+  Serial.println("Traffic Light System Started");
 }
 
 void loop() {
 
-  if (digitalRead(BUTTON_PIN) == LOW && currentState != PED_RED) {
-    setState(PED_RED);
+  unsigned long currentMillis = millis();
+
+  // Pedestrian button check
+  if (digitalRead(pedButton) == LOW && !pedestrianMode) {
+    pedestrianMode = true;
+    pedStartTime = currentMillis;
+    currentState = RED;
+
+    Serial.print("[");
+    Serial.print(currentMillis);
+    Serial.println("] PEDESTRIAN MODE ACTIVATED");
   }
 
-  unsigned long elapsed = millis() - stateStartTime;
+  // Pedestrian mode active
+  if (pedestrianMode) {
 
-  switch (currentState) {
-    case RED:
-      if (elapsed >= RED_TIME) setState(YELLOW);
-      break;
+    currentState = RED;
+    setLights(1, 0, 0);
 
-    case YELLOW:
-      if (elapsed >= YELLOW_TIME) setState(GREEN);
-      break;
+    Serial.print("[");
+    Serial.print(currentMillis);
+    Serial.println("] RED (PEDESTRIAN SAFE)");
 
-    case GREEN:
-      if (elapsed >= GREEN_TIME) setState(RED);
-      break;
+    if (currentMillis - pedStartTime >= 8000) {
+      pedestrianMode = false;
+      previousMillis = currentMillis;
+      Serial.println("Pedestrian mode ended");
+    }
 
-    case PED_RED:
-      if (elapsed >= PED_TIME) setState(RED);
-      break;
+    delay(500);
+    return;
   }
+
+  // Normal traffic cycle
+  if (currentState == RED && currentMillis - previousMillis >= 5000) {
+    currentState = YELLOW;
+    previousMillis = currentMillis;
+    Serial.print("[");
+    Serial.print(currentMillis);
+    Serial.println("] YELLOW LIGHT");
+  }
+
+  else if (currentState == YELLOW && currentMillis - previousMillis >= 2000) {
+    currentState = GREEN;
+    previousMillis = currentMillis;
+    Serial.print("[");
+    Serial.print(currentMillis);
+    Serial.println("] GREEN LIGHT");
+  }
+
+  else if (currentState == GREEN && currentMillis - previousMillis >= 4000) {
+    currentState = RED;
+    previousMillis = currentMillis;
+    Serial.print("[");
+    Serial.print(currentMillis);
+    Serial.println("] RED LIGHT");
+  }
+
+  setLights(
+    currentState == RED,
+    currentState == YELLOW,
+    currentState == GREEN
+  );
 }
 
-void setState(State newState) {
-  currentState = newState;
-  stateStartTime = millis();
-
-  digitalWrite(RED_PIN, LOW);
-  digitalWrite(YELLOW_PIN, LOW);
-  digitalWrite(GREEN_PIN, LOW);
-
-  String msg;
-
-  if (newState == RED) {
-    digitalWrite(RED_PIN, HIGH);
-    msg = "RED ON";
-  }
-  else if (newState == YELLOW) {
-    digitalWrite(YELLOW_PIN, HIGH);
-    msg = "YELLOW ON";
-  }
-  else if (newState == GREEN) {
-    digitalWrite(GREEN_PIN, HIGH);
-    msg = "GREEN ON";
-  }
-  else {
-    digitalWrite(RED_PIN, HIGH);
-    msg = "PEDESTRIAN MODE - RED ON";
-  }
-
-  Serial.print(millis());
-  Serial.print(" ms -> ");
-  Serial.println(msg);
+void setLights(int r, int y, int g) {
+  digitalWrite(redLED, r);
+  digitalWrite(yellowLED, y);
+  digitalWrite(greenLED, g);
 }
