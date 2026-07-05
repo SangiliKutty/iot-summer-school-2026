@@ -1,1 +1,68 @@
+int enA = 5;
+int in1 = 8;
+int in2 = 9;
 
+int potPin = A0;
+int btnDir = 2;
+int btnStart = 3;
+
+bool direction = true;
+bool motorState = false;
+
+void setup() {
+  pinMode(enA, OUTPUT);
+  pinMode(in1, OUTPUT);
+  pinMode(in2, OUTPUT);
+
+  pinMode(btnDir, INPUT_PULLUP);
+  pinMode(btnStart, INPUT_PULLUP);
+
+  Serial.begin(9600);
+}
+
+void loop() {
+
+  // Direction button
+  if (digitalRead(btnDir) == LOW) {
+    direction = !direction;
+    delay(300);
+  }
+
+  // Start/Stop button
+  if (digitalRead(btnStart) == LOW) {
+    motorState = !motorState;
+    delay(300);
+  }
+
+  int potValue = analogRead(potPin);
+  int speedPWM = map(potValue, 0, 1023, 0, 255);
+  int speedPercent = map(potValue, 0, 1023, 0, 100);
+
+  if (motorState) {
+
+    if (direction) {
+      digitalWrite(in1, HIGH);
+      digitalWrite(in2, LOW);
+    } else {
+      digitalWrite(in1, LOW);
+      digitalWrite(in2, HIGH);
+    }
+
+    analogWrite(enA, speedPWM);
+
+  } else {
+    analogWrite(enA, 0);
+  }
+
+  Serial.print("Dir: ");
+  Serial.print(direction ? "Forward" : "Reverse");
+
+  Serial.print(" | Speed: ");
+  Serial.print(speedPercent);
+  Serial.print("%");
+
+  Serial.print(" | State: ");
+  Serial.println(motorState ? "ON" : "OFF");
+
+  delay(200);
+}
