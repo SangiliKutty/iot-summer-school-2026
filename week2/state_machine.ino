@@ -1,106 +1,92 @@
-const int ledIdle = 8;
-const int ledCoin = 9;
-const int ledItem = 10;
+enum State {
+  IDLE,
+  COIN_INSERTED,
+  ITEM_SELECTED,
+  DISPENSING
+};
 
-const int btnCoin = 2;
-const int btnSelect = 3;
-const int btnCancel = 4;
+State currentState = IDLE;
 
-int state = 0;
+// Buttons
+int coinBtn = 2;
+int selectBtn = 3;
+int cancelBtn = 4;
 
-// 0 = IDLE
-// 1 = COIN_INSERTED
-// 2 = ITEM_SELECTED
-// 3 = DISPENSING
+// LEDs
+int ledIdle = 8;
+int ledSelect = 9;
+int ledDispense = 10;
 
-void setup()
-{
-  Serial.begin(9600);
+void setup() {
+  pinMode(coinBtn, INPUT_PULLUP);
+  pinMode(selectBtn, INPUT_PULLUP);
+  pinMode(cancelBtn, INPUT_PULLUP);
 
   pinMode(ledIdle, OUTPUT);
-  pinMode(ledCoin, OUTPUT);
-  pinMode(ledItem, OUTPUT);
+  pinMode(ledSelect, OUTPUT);
+  pinMode(ledDispense, OUTPUT);
 
-  pinMode(btnCoin, INPUT_PULLUP);
-  pinMode(btnSelect, INPUT_PULLUP);
-  pinMode(btnCancel, INPUT_PULLUP);
+  Serial.begin(9600);
 
-  Serial.println("State : IDLE");
+  Serial.println("Vending Machine Started");
+  setState(IDLE);
 }
 
-void loop()
-{
-  updateLEDs();
+void loop() {
 
-  // IDLE
-  if (state == 0)
-  {
-    if (digitalRead(btnCoin) == LOW)
-    {
-      state = 1;
-      Serial.println("IDLE -> COIN_INSERTED");
+  if (digitalRead(coinBtn) == LOW) {
+    if (currentState == IDLE) {
+      setState(COIN_INSERTED);
       delay(300);
     }
   }
 
-  // COIN_INSERTED
-  else if (state == 1)
-  {
-    if (digitalRead(btnSelect) == LOW)
-    {
-      state = 2;
-      Serial.println("COIN_INSERTED -> ITEM_SELECTED");
-      delay(300);
-    }
+  if (digitalRead(selectBtn) == LOW) {
+    if (currentState == COIN_INSERTED) {
+      setState(ITEM_SELECTED);
+      delay(500);
 
-    else if (digitalRead(btnCancel) == LOW)
-    {
-      state = 0;
-      Serial.println("COIN_INSERTED -> IDLE");
-      delay(300);
+      setState(DISPENSING);
+      delay(1000);
+
+      setState(IDLE);
     }
   }
 
-  // ITEM_SELECTED
-  else if (state == 2)
-  {
-    Serial.println("ITEM_SELECTED -> DISPENSING");
-    state = 3;
-    delay(1000);
-  }
-
-  // DISPENSING
-  else if (state == 3)
-  {
-    updateLEDs();
-
-    Serial.println("DISPENSING...");
-    delay(2000);
-
-    Serial.println("DISPENSING -> IDLE");
-
-    state = 0;
+  if (digitalRead(cancelBtn) == LOW) {
+    setState(IDLE);
+    delay(300);
   }
 }
 
-void updateLEDs()
-{
+void setState(State newState) {
+
+  currentState = newState;
+
+  // reset LEDs
   digitalWrite(ledIdle, LOW);
-  digitalWrite(ledCoin, LOW);
-  digitalWrite(ledItem, LOW);
+  digitalWrite(ledSelect, LOW);
+  digitalWrite(ledDispense, LOW);
 
-  if (state == 0)
-  {
-    digitalWrite(ledIdle, HIGH);
-  }
+  switch (currentState) {
 
-  else if (state == 1)
-  {
-    digitalWrite(ledCoin, HIGH);
-  }
+    case IDLE:
+      digitalWrite(ledIdle, HIGH);
+      Serial.println("STATE: IDLE");
+      break;
 
-  else if (state == 2 || state == 3)
-  {
-    digitalWrite(ledItem, HIGH);
+    case COIN_INSERTED:
+      Serial.println("STATE: COIN INSERTED");
+      break;
+
+    case ITEM_SELECTED:
+      digitalWrite(ledSelect, HIGH);
+      Serial.println("STATE: ITEM SELECTED");
+      break;
+
+    case DISPENSING:
+      digitalWrite(ledDispense, HIGH);
+      Serial.println("STATE: DISPENSING ITEM...");
+      break;
   }
 }
